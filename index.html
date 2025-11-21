@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Termometro Matematico Mobile</title>
     <style>
-        /* --- VARIABILI (Default Desktop) --- */
+        /* --- VARIABILI --- */
         :root {
             --bulb-size: 70px;
             --stem-width: 44px;
             --height: 500px;
-            --glass-border: #5f6368;
+            --glass-border-width: 5px; /* Definito spessore bordo per calcoli precisi */
+            --glass-border-color: #5f6368;
             --mercury-color: #95a5a6;
             --col-pos: #e74c3c;
             --col-neg: #3498db;
@@ -25,7 +26,6 @@
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #fdfdfd;
-            /* Sfondo a quadretti (Desktop) */
             background-image: 
                 linear-gradient(#e0e0e0 1px, transparent 1px), 
                 linear-gradient(90deg, #e0e0e0 1px, transparent 1px);
@@ -38,7 +38,6 @@
             -webkit-user-select: none;
         }
 
-        /* TITOLO */
         h1 { 
             color: #2c3e50; 
             margin: 10px 0;
@@ -48,7 +47,6 @@
             flex-shrink: 0; 
         }
 
-        /* CONTENITORE PRINCIPALE */
         .main-wrapper {
             display: flex;
             justify-content: center;
@@ -57,7 +55,6 @@
             background: rgba(255, 255, 255, 0.95);
             padding: 20px;
             border-radius: 20px;
-            /* Ombra (Desktop) */
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             width: 90%;
             max-width: 950px;
@@ -67,7 +64,7 @@
             box-sizing: border-box;
         }
 
-        /* --- SEZIONE TERMOMETRO --- */
+        /* --- TERMOMETRO --- */
         .thermometer-section {
             display: flex;
             justify-content: center;
@@ -91,14 +88,16 @@
             position: relative;
             left: 30px; 
             width: var(--stem-width);
+            /* Altezza totale meno bulbo + pezzetto di connessione */
             height: calc(100% - var(--bulb-size) + 15px);
-            border: 5px solid var(--glass-border);
+            border: var(--glass-border-width) solid var(--glass-border-color);
             border-bottom: none;
             border-radius: 30px 30px 0 0;
             background: rgba(255, 255, 255, 0.5);
             overflow: hidden;
             z-index: 2;
             box-shadow: inset 5px 0 10px rgba(0,0,0,0.1);
+            box-sizing: content-box; /* Importante per il calcolo dei bordi */
         }
 
         .weather-icon {
@@ -156,7 +155,7 @@
             width: var(--bulb-size);
             height: var(--bulb-size);
             background: radial-gradient(circle at 35% 35%, #e0e6e8, #95a5a6 40%, #5f6a72 90%);
-            border: 5px solid var(--glass-border);
+            border: var(--glass-border-width) solid var(--glass-border-color);
             border-radius: 50%;
             z-index: 6;
             box-shadow: 
@@ -187,12 +186,16 @@
             pointer-events: none;
         }
 
-        /* TACCHE */
+        /* --- TACCHE (TICKS) FIXATE --- */
         .ticks {
             position: absolute;
             left: 85px; 
-            height: calc(100% - var(--bulb-size) + 15px); 
-            top: 0;
+            /* CORREZIONE MATEMATICA ALLINEAMENTO:
+               Altezza tubo - bulbo + offset connessione - spessore bordo superiore.
+               Inoltre aggiungiamo 'top' pari allo spessore del bordo.
+               Così 100% liquido = 100% tacche. */
+            height: calc(100% - var(--bulb-size) + 15px - var(--glass-border-width)); 
+            top: var(--glass-border-width); 
             width: 80px;
             pointer-events: none;
         }
@@ -203,6 +206,7 @@
             border-bottom: 1px solid #bbb;
             left: 0; 
             box-sizing: border-box;
+            /* Centra la linea sul punto esatto */
             transform: translateY(50%);
         }
         .tick.major { width: 20px; border-bottom: 2px solid #888; }
@@ -366,7 +370,6 @@
 
             body { 
                 padding: 5px;
-                /* RIMOSSO SFONDO A QUADRETTI SU MOBILE */
                 background-image: none; 
                 background-color: #fff;
             }
@@ -384,10 +387,9 @@
                 width: 98%;
                 height: calc(100% - 60px); 
                 max-height: none;
-                /* RIMOSSA OMBRA E BORDI SU MOBILE */
                 box-shadow: none;
                 border: none;
-                background: #fff; /* Assicura sfondo bianco pulito */
+                background: #fff;
             }
 
             .thermometer-section {
@@ -405,10 +407,24 @@
 
             .stem { left: 15px; }
             .bulb { left: 5px; font-size: 1.2rem; }
-            .ticks { left: 60px; width: 40px; height: calc(100% - var(--bulb-size) + 15px); }
-            .tick span { font-size: 12px; left: 18px; }
-            .tick.zero span { left: 35px; }
             
+            /* FIXES SPECIFICI MOBILE RICHIESTI */
+            
+            /* 1. Altezza tacche ricalcolata e offset top */
+            .ticks { 
+                left: 60px; 
+                width: 50px; /* Aumentata larghezza contenitore */
+                height: calc(100% - var(--bulb-size) + 15px - var(--glass-border-width)); 
+                top: var(--glass-border-width);
+            }
+            
+            /* 2. Numeri spostati più a destra per non sovrapporsi */
+            .tick span { 
+                font-size: 12px; 
+                left: 28px; /* Spostato da 18px a 28px per evitare overlap con la linea da 20px */
+            }
+            .tick.zero span { left: 45px; } /* Lo zero ancora più in là */
+
             .interface-section {
                 gap: 10px;
                 overflow-y: auto;
@@ -425,19 +441,16 @@
                 border-radius: 5px; 
             }
             
-            /* MODIFICA LAYOUT TASTI MOBILE: IMPILATI VERTICALMENTE */
             .controls { 
                 padding: 10px; 
                 gap: 8px; 
-                flex-direction: column; /* Tutto in colonna */
-                align-items: stretch; /* Tasti a larghezza piena */
+                flex-direction: column;
+                align-items: stretch;
             }
             
-            /* Contenitore per label e input sulla stessa riga (opzionale, o tutto colonna) */
-            /* Qui teniamo tutto colonna per semplicità e grandezza touch */
             input[type="number"] { 
-                width: 100%; /* Input largo */
-                box-sizing: border-box; /* Fix padding */
+                width: 100%; 
+                box-sizing: border-box; 
                 font-size: 1.2rem; 
                 padding: 8px;
                 margin-bottom: 5px;
@@ -446,7 +459,7 @@
             button { 
                 padding: 12px 10px; 
                 font-size: 1rem; 
-                width: 100%; /* Bottone largo tutto lo spazio */
+                width: 100%; 
             }
             
             .drag-hint { font-size: 0.65rem; }
@@ -669,8 +682,11 @@
         function getTempFromY(clientY) {
             const rect = stem.getBoundingClientRect();
             const heightPx = rect.bottom - clientY;
-            const totalHeight = rect.height;
+            /* Usiamo l'altezza interna per il calcolo corretto */
+            const totalHeight = rect.height - 10; /* 5px border top + 5px approx offset */
             let percent = heightPx / totalHeight;
+            
+            // Correzione fine per calibrazione drag
             if (percent < 0) percent = 0;
             if (percent > 1) percent = 1;
             const range = maxTemp - minTemp;
@@ -752,7 +768,7 @@
             explainLogic(prevTemp, currentTemp - prevTemp, currentTemp);
         }
 
-        // --- SPIEGAZIONE LOGICA AGGIORNATA ---
+        // --- SPIEGAZIONE LOGICA ---
         function explainLogic(start, diff, end) {
             const sStart = start < 0 ? `(${start}°)` : (start > 0 ? `(+${start}°)` : `0°`);
             const sDiff = diff < 0 ? `(${diff}°)` : `(+${diff}°)` ;
@@ -779,7 +795,6 @@
 
                 if (sameSign) {
                     logicClass = "concordi";
-                    // TESTO MODIFICATO: Stesso Segno
                     htmlContent = `
                         <strong>CONCORDI</strong> (Stesso Segno)<br>
                         Somma le distanze: ${Math.abs(start)} + ${Math.abs(diff)} = ${Math.abs(end)}.<br>
@@ -793,7 +808,6 @@
                     const minAbs = Math.min(absStart, absDiff);
                     const winnerSign = end > 0 ? '+' : (end < 0 ? '-' : '');
                     
-                    // TESTO MODIFICATO: Segni Opposti
                     htmlContent = `
                         <strong>DISCORDI</strong> (Segni Opposti)<br>
                         Differenza: ${maxAbs} - ${minAbs} = ${Math.abs(end)}.<br>
