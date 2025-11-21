@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termometro Matematico Pro</title>
+    <style>
+        :root {
+            --bulb-size: 70px;
+            --stem-width: 44px;
+            --height: 500px;
+            --glass-border: #5f6368;
+            --mercury-color: #95a5a6;
+            --col-pos: #e74c3c;
+            --col-neg: #3498db;
+        }
+
+        /* SFONDO A QUADRETTI */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+            background-color: #fdfdfd;
+            background-image: 
+                linear-gradient(#e0e0e0 1px, transparent 1px), 
+                linear-gradient(90deg, #e0e0e0 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #333;
+        }
+
+        /* TITOLO (Sfondo rimosso, icona meteo) */
+        h1 { 
+            color: #2c3e50; 
+            margin-bottom: 30px;
+            text-align: center; 
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.6);
+            background: none; 
+            padding: 0;
+            font-size: 2.5rem;
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 50px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 950px;
+            width: 100%;
+            border: 1px solid #eee;
+        }
+
+        /* --- TERMOMETRO --- */
+        .thermometer-section {
+            display: flex;
+            justify-content: center;
+            min-width: 250px; 
+            padding-top: 10px;
+        }
+
+        .thermometer-wrapper {
+            position: relative;
+            height: var(--height);
+            width: 200px;
+            cursor: grab;
+        }
+        .thermometer-wrapper:active { cursor: grabbing; }
+
+        .stem {
+            position: relative;
+            left: 30px; 
+            width: var(--stem-width);
+            height: calc(var(--height) - var(--bulb-size) + 20px);
+            border: 5px solid var(--glass-border);
+            border-bottom: none;
+            border-radius: 30px 30px 0 0;
+            background: rgba(255, 255, 255, 0.5);
+            overflow: hidden;
+            z-index: 2;
+            box-shadow: inset 5px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .weather-icon {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            opacity: 0.4;
+            z-index: 0;
+        }
+        .icon-hot { top: 15px; color: var(--col-pos); }
+        .icon-cold { bottom: 15px; color: var(--col-neg); }
+
+        .liquid-column {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            background-color: var(--mercury-color);
+            z-index: 2;
+            transition: height 0.1s linear;
+            box-shadow: inset -5px 0 10px rgba(0,0,0,0.2);
+            border-top: 1px solid #7f8c8d;
+        }
+
+        .diff-bar {
+            position: absolute;
+            left: 0; width: 100%;
+            z-index: 3;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.1s linear;
+            background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+            background-size: 10px 10px;
+        }
+
+        .drag-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+        }
+
+        .glass-shine {
+            position: absolute;
+            top: 0; left: 5px;
+            width: 10px; height: 100%;
+            background: rgba(255,255,255,0.4);
+            z-index: 5;
+            pointer-events: none;
+            border-radius: 5px;
+        }
+
+        /* --- BULBO GRAFICAMENTE MIGLIORATO --- */
+        .bulb {
+            position: absolute;
+            left: 12px;
+            bottom: 0;
+            width: var(--bulb-size);
+            height: var(--bulb-size);
+            
+            /* Nuovo Gradiente Metallico/Sferico */
+            background: radial-gradient(circle at 35% 35%, #e0e6e8, #95a5a6 40%, #5f6a72 90%);
+            
+            border: 5px solid var(--glass-border);
+            border-radius: 50%;
+            z-index: 6;
+            
+            /* Ombre profonde per effetto 3D */
+            box-shadow: 
+                inset 2px 2px 5px rgba(255,255,255,0.6), /* Luce interna */
+                inset -3px -3px 10px rgba(0,0,0,0.3),    /* Ombra interna */
+                0 8px 20px rgba(0,0,0,0.3);              /* Ombra esterna */
+            
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            /* Testo */
+            color: #333;
+            font-weight: 900;
+            font-size: 1.7rem; /* Leggermente più grande */
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.8); /* Leggera bordatura bianca per contrasto */
+        }
+
+        /* Pseudo-elemento per il riflesso lucido sul vetro */
+        .bulb::after {
+            content: '';
+            position: absolute;
+            top: 12%;
+            left: 15%;
+            width: 25%;
+            height: 15%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            transform: rotate(-45deg);
+            filter: blur(1px);
+            pointer-events: none;
+        }
+
+        .ticks {
+            position: absolute;
+            left: 90px;
+            top: 0;
+            height: calc(var(--height) - var(--bulb-size) + 20px);
+            width: 100px;
+            pointer-events: none;
+        }
+
+        .tick {
+            position: absolute;
+            width: 10px; 
+            border-bottom: 1px solid #bbb;
+            left: 0; 
+            box-sizing: border-box;
+        }
+
+        .tick.major {
+            width: 20px;
+            border-bottom: 2px solid #888;
+        }
+        .tick.zero {
+            width: 40px;
+            border-bottom: 3px solid #333;
+        }
+
+        .tick span {
+            position: absolute;
+            left: 25px;
+            top: -8px;
+            font-size: 15px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .tick.pos span { color: var(--col-pos); }
+        .tick.neg span { color: var(--col-neg); }
+        .tick.zero span { color: #333; font-size: 16px; left: 45px; }
+
+        /* --- INTERFACCIA --- */
+        .interface-section {
+            flex: 1;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            justify-content: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            background: #f0f4f8;
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #dce1e6;
+            flex-wrap: wrap; 
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            width: 70px;
+            font-size: 1.3rem;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+            background: white;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            color: white;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+        button:active { 
+            transform: translateY(4px); 
+            box-shadow: 0 0 0 rgba(0,0,0,0.2); 
+        }
+
+        .btn-add { background-color: var(--col-pos); }
+        .btn-sub { background-color: var(--col-neg); }
+        .btn-reset { 
+            background-color: #7f8c8d; 
+            width: 100%; 
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        /* --- STILE RIQUADRO OPERAZIONE --- */
+        .math-panel {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+
+        .calculation-display {
+            background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(24, 40, 72, 0.3);
+        }
+
+        .calc-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 5px;
+        }
+
+        .calc-numbers {
+            font-family: 'Courier New', monospace;
+            font-size: 1.6rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-around; 
+            align-items: center;
+        }
+
+        .logic-box {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fcfcfc;
+            border-left: 6px solid #ccc;
+        }
+        .logic-box.concordi {
+            background-color: #eafaf1;
+            border-left-color: #2ecc71;
+            color: #1e8449;
+        }
+        .logic-box.discordi {
+            background-color: #fef9e7;
+            border-left-color: #f1c40f;
+            color: #9a7d0a;
+        }
+
+        .drag-hint {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #999;
+            font-style: italic;
+        }
+
+        .sound-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sound-toggle" onclick="toggleAudio()">
+        <span id="audioIcon">🔇</span> Suono
+    </div>
+
+    <h1>🌤️ Termometro Matematico</h1>
+
+    <div class="main-wrapper">
+        
+        <!-- LATO SINISTRO: TERMOMETRO -->
+        <div class="thermometer-section">
+            <div class="thermometer-wrapper" id="thermometerArea">
+                
+                <div class="stem">
+                    <div class="weather-icon icon-hot">☀️</div>
+                    <div class="weather-icon icon-cold">❄️</div>
+                    <div class="glass-shine"></div>
+                    <div class="liquid-column" id="liquidColumn"></div>
+                    <div class="diff-bar" id="diffBar"></div>
+                    <div class="drag-overlay"></div>
+                </div>
+                
+                <div class="ticks" id="ticksContainer"></div>
+
+                <div class="bulb" id="bulbColor">
+                    <span id="bulbTempDisplay">0°</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- LATO DESTRO: INTERFACCIA -->
+        <div class="interface-section">
+            
+            <div class="math-panel">
+                <div class="calculation-display">
+                    <div class="calc-labels">
+                        <span style="text-align:left">Temp. Iniziale</span>
+                        <span style="text-align:center">Spostamento</span>
+                        <span style="text-align:right">Risultato</span>
+                    </div>
+                    <div class="calc-numbers" id="calcDisplay">
+                        0° + 0° = 0°
+                    </div>
+                </div>
+                
+                <div class="logic-box" id="logicDisplay">
+                    <strong>Pronto!</strong><br>
+                    Clicca e trascina il mercurio o usa i pulsanti qui sotto.
+                </div>
+            </div>
+
+            <div class="controls">
+                <label style="font-weight:bold; color:#555;">Cambio di temperatura:</label>
+                <input type="number" id="inputVal" value="0" min="1" max="40">
+                <button class="btn-add" onclick="performButtonOperation('add')">Sali (+)</button>
+                <button class="btn-sub" onclick="performButtonOperation('sub')">Scendi (-)</button>
+            </div>
+            
+            <button class="btn-reset" onclick="resetTemp()">Cancella / Reset</button>
+            <div class="drag-hint">I numeri rossi sono caldi (+), quelli blu sono freddi (-)</div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAZIONE ---
+        const minTemp = -20;
+        const maxTemp = 20;
+        let currentTemp = 0;
+        let startTempForDrag = 0;
+        let isDragging = false;
+        let audioEnabled = false;
+        let audioCtx = null;
+
+        // --- ELEMENTI DOM ---
+        const liquidColumn = document.getElementById('liquidColumn');
+        const diffBar = document.getElementById('diffBar');
+        const bulbTempDisplay = document.getElementById('bulbTempDisplay');
+        const ticksContainer = document.getElementById('ticksContainer');
+        const inputVal = document.getElementById('inputVal');
+        const calcDisplay = document.getElementById('calcDisplay');
+        const logicDisplay = document.getElementById('logicDisplay');
+        const thermometerArea = document.getElementById('thermometerArea');
+        const audioIcon = document.getElementById('audioIcon');
+        const stem = document.querySelector('.stem');
+
+        // --- AUDIO ---
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            audioEnabled = true;
+            audioIcon.innerText = "🔊";
+        }
+
+        function toggleAudio() {
+            if(!audioEnabled) initAudio();
+            else {
+                audioEnabled = false;
+                audioIcon.innerText = "🔇";
+            }
+        }
+
+        function playSound(type) {
+            if (!audioEnabled || !audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'tick') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'end') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.linearRampToValueAtTime(600, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'reset') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        // --- LOGICA GRAFICA ---
+        function createTicks() {
+            const range = maxTemp - minTemp;
+            for (let i = minTemp; i <= maxTemp; i++) {
+                const tick = document.createElement('div');
+                tick.classList.add('tick');
+                const isMajor = (i % 5 === 0); 
+                
+                if (i === 0) tick.classList.add('zero');
+                if (i > 0) tick.classList.add('pos');
+                if (i < 0) tick.classList.add('neg');
+
+                if (isMajor) {
+                    tick.classList.add('major');
+                    tick.innerHTML = `<span>${i > 0 ? '+' : ''}${i}</span>`;
+                }
+                const percent = ((i - minTemp) / range) * 100;
+                tick.style.bottom = percent + '%';
+                ticksContainer.appendChild(tick);
+            }
+        }
+
+        function updateThermometerUI(targetTemp, referenceTemp) {
+            const range = maxTemp - minTemp;
+
+            let mainPercent = ((targetTemp - minTemp) / range) * 100;
+            mainPercent = Math.max(0, Math.min(100, mainPercent));
+            liquidColumn.style.height = mainPercent + '%';
+
+            if (referenceTemp !== null && referenceTemp !== targetTemp) {
+                let startPercent = ((referenceTemp - minTemp) / range) * 100;
+                startPercent = Math.max(0, Math.min(100, startPercent));
+
+                const diffHeight = Math.abs(mainPercent - startPercent);
+                const diffBottom = Math.min(mainPercent, startPercent);
+                
+                diffBar.style.height = diffHeight + '%';
+                diffBar.style.bottom = diffBottom + '%';
+                
+                if (targetTemp > referenceTemp) {
+                    diffBar.style.backgroundColor = 'rgba(231, 76, 60, 0.6)';
+                    diffBar.style.borderTop = '2px solid #c0392b';
+                    diffBar.style.borderBottom = 'none';
+                } else {
+                    diffBar.style.backgroundColor = 'rgba(52, 152, 219, 0.6)';
+                    diffBar.style.borderBottom = '2px solid #2980b9';
+                    diffBar.style.borderTop = 'none';
+                }
+                diffBar.style.opacity = '1';
+            } else {
+                diffBar.style.opacity = '0';
+            }
+
+            const sign = targetTemp > 0 ? '+' : '';
+            bulbTempDisplay.innerText = `${sign}${targetTemp}°`;
+            if(targetTemp > 0) bulbTempDisplay.style.color = '#c0392b';
+            else if(targetTemp < 0) bulbTempDisplay.style.color = '#2980b9';
+            else bulbTempDisplay.style.color = '#333';
+        }
+
+        function getTempFromY(clientY) {
+            const rect = stem.getBoundingClientRect();
+            const heightPx = rect.bottom - clientY;
+            const totalHeight = rect.height;
+            let percent = heightPx / totalHeight;
+            if (percent < 0) percent = 0;
+            if (percent > 1) percent = 1;
+            const range = maxTemp - minTemp;
+            let rawTemp = minTemp + (percent * range);
+            return Math.round(rawTemp);
+        }
+
+        thermometerArea.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('mouseup', endDrag);
+        thermometerArea.addEventListener('touchstart', (e) => startDrag(e.touches[0]));
+        document.addEventListener('touchmove', (e) => { 
+            if(isDragging) { e.preventDefault(); doDrag(e.touches[0]); } 
+        }, {passive: false});
+        document.addEventListener('touchend', endDrag);
+
+        function startDrag(e) {
+            if(!audioEnabled && !audioCtx) initAudio();
+            isDragging = true;
+            startTempForDrag = currentTemp;
+            const newTemp = getTempFromY(e.clientY || e.touches[0].clientY);
+            updateDraggingState(newTemp);
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+            const clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+            const newTemp = getTempFromY(clientY);
+            updateDraggingState(newTemp);
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            playSound('end');
+            explainLogic(startTempForDrag, currentTemp - startTempForDrag, currentTemp);
+        }
+
+        function updateDraggingState(newTemp) {
+            if (newTemp === currentTemp) return;
+            if (newTemp !== currentTemp) playSound('tick');
+            currentTemp = newTemp;
+            updateThermometerUI(currentTemp, startTempForDrag);
+            
+            const diff = currentTemp - startTempForDrag;
+            const absDiff = Math.abs(diff);
+            inputVal.value = absDiff;
+
+            const sDiff = diff >= 0 ? `+${diff}` : diff;
+            calcDisplay.innerHTML = `...`; 
+            logicDisplay.innerHTML = "<i>Rilascia per confermare il cambio di temperatura...</i>";
+            logicDisplay.className = "logic-box";
+        }
+
+        function performButtonOperation(action) {
+            if(!audioEnabled && !audioCtx) initAudio();
+            let valInput = parseInt(inputVal.value);
+            if (isNaN(valInput) || valInput <= 0) {
+                valInput = 1;
+                inputVal.value = 1; 
+            }
+            const prevTemp = currentTemp;
+            const operator = (action === 'add') ? valInput : -valInput;
+            let nextTemp = prevTemp + operator;
+            if (nextTemp > maxTemp) nextTemp = maxTemp;
+            if (nextTemp < minTemp) nextTemp = minTemp;
+
+            currentTemp = nextTemp;
+            playSound('end');
+            updateThermometerUI(currentTemp, prevTemp);
+            explainLogic(prevTemp, currentTemp - prevTemp, currentTemp);
+        }
+
+        // --- SPIEGAZIONE LOGICA ---
+        function explainLogic(start, diff, end) {
+            const sStart = start < 0 ? `(${start}°)` : (start > 0 ? `(+${start}°)` : `0°`);
+            const sDiff = diff < 0 ? `(${diff}°)` : `(+${diff}°)` ;
+            const sEnd = end > 0 ? `+${end}°` : `${end}°`;
+
+            calcDisplay.innerHTML = `${sStart} + ${sDiff} = ${sEnd}`;
+
+            let htmlContent = "";
+            let logicClass = "";
+
+            if (diff === 0) {
+                logicDisplay.innerHTML = "Nessun movimento.";
+                logicDisplay.className = "logic-box";
+                return;
+            }
+
+            if (start === 0) {
+                logicClass = "";
+                htmlContent = `Partenza da <strong>Zero</strong>.<br>Il risultato è uguale al movimento: <strong>${sDiff}</strong>.`;
+            } else {
+                const isStartPos = start > 0;
+                const isDiffPos = diff > 0;
+                const sameSign = (isStartPos === isDiffPos);
+
+                if (sameSign) {
+                    logicClass = "concordi";
+                    htmlContent = `
+                        <strong>CONCORDI</strong> (Stesso verso)<br>
+                        Si sommano le distanze: ${Math.abs(start)} + ${Math.abs(diff)} = ${Math.abs(end)}.<br>
+                        Il segno rimane lo stesso (${isStartPos ? '+' : '-'}).
+                    `;
+                } else {
+                    logicClass = "discordi";
+                    const absStart = Math.abs(start);
+                    const absDiff = Math.abs(diff);
+                    const maxAbs = Math.max(absStart, absDiff);
+                    const minAbs = Math.min(absStart, absDiff);
+                    const winnerSign = end > 0 ? '+' : (end < 0 ? '-' : '');
+                    
+                    htmlContent = `
+                        <strong>DISCORDI</strong> (Inversione)<br>
+                        Fai la differenza: ${maxAbs} - ${minAbs} = ${Math.abs(end)}.<br>
+                        Vince il segno del numero con valore assoluto maggiore (${maxAbs}), cioè <strong>${winnerSign}</strong>.
+                    `;
+                }
+            }
+            logicDisplay.className = "logic-box " + logicClass;
+            logicDisplay.innerHTML = htmlContent;
+        }
+
+        function resetTemp() {
+            if(!audioEnabled && !audioCtx) initAudio();
+            playSound('reset');
+            currentTemp = 0;
+            startTempForDrag = 0;
+            inputVal.value = 0;
+            updateThermometerUI(0, 0); 
+            calcDisplay.innerHTML = "0° + 0° = 0°";
+            logicDisplay.className = "logic-box";
+            logicDisplay.innerHTML = "Reset effettuato.";
+        }
+
+        createTicks();
+        updateThermometerUI(0, 0);
+
+    </script>
+</body>
+</html>
